@@ -38,10 +38,10 @@ int block[7][4][20]=
         {0, 1, 1, 1, 2, 1, 1, 0, 2, 1}
     },
     {// L
-        {0, 0, 0, 1, 1, 1, 1, 2, 1, 2},
-        {0, 1, 1, 1, 1, 0, 2, 0, 2, 1},
-        {0, 0, 0, 1, 1, 1, 1, 2, 1, 2},
-        {0, 1, 1, 1, 1, 0, 2, 0, 2, 1}
+        {0, 0, 0, 1, 0, 2, 1, 0, 1, 2},
+        {0, 0, 0, 1, 1, 1, 2, 1, 2, 1},
+        {0, 2, 1, 2, 1, 1, 1, 0, 1, 2},
+        {0, 0, 1, 0, 2, 0, 2, 1, 2, 1}
     },
     {// J
         {0, 0, 1, 0, 2, 0, 2, 1, 2, 1},
@@ -54,7 +54,8 @@ int block[7][4][20]=
 
 int hold, last_block, now_block, next_block, interface[25][25];
 int x, y, r, lx, ly, lr;
-int score;
+int score, high;
+int t;
 
 //generate a new block
 void new_block()
@@ -62,7 +63,10 @@ void new_block()
     lx = x = 3;
     ly = y = 0;
     lr = r = 0;
-    now_block = rand() % 7;
+    int temp = rand() % 7;
+    while(temp == now_block)
+        temp = rand() % 7;
+    now_block = temp;
 }
 
 //set the state of the interface
@@ -116,8 +120,14 @@ void update() {
 //block fall down
 bool tick()
 {
-    static int t = 0;
-    if(++t > 30)
+    int limit;
+    if(score <= 5)
+        limit = 40;
+    if(score > 5 && score <= 15)
+        limit = 25;
+    if(score > 15)
+        limit = 15;
+    if(++t > limit)
     {
         t = 0;
         if(!check(x, y + 1, r))
@@ -156,8 +166,51 @@ void draw()
     refresh();
 }
 
+void print_menu();
+
+void clear_interface()
+{
+    for (int i = 1; i < 20; i++)
+    {
+        move(1 + i, 1);
+        for (int j = 0; j < 10; j++)
+            printw("  "), interface[i][j] = 0;
+    }
+}
+
+void print_over()
+{
+    timeout(-1);
+    move(5, 2);
+    attron(COLOR_PAIR(2));
+    printw("GAME OVER!");
+    attroff(COLOR_PAIR(2));
+    move(8, 2);
+    attron(COLOR_PAIR(3));
+    printw("YOUR SCORE: %d", score);
+    attroff(COLOR_PAIR(3));
+    move(11, 2);
+    attron(COLOR_PAIR(4));
+    printw("PRESS ANY KEY");
+    move(12, 3);
+    printw("TO CONTINUE.");
+    attroff(COLOR_PAIR(4));
+    box(stdscr, 0, 0);
+    refresh();
+    if(score > high)
+        high = score;
+    getch();
+    print_menu();
+}
+
 void run()
 {
+    for(int i = 1; i <= 7; i++)
+        init_pair(i, i, i);
+    clear_interface();
+    timeout(0);
+    new_block();
+    score = 0;
     char opration;
     while(tick())
     {
@@ -192,6 +245,67 @@ void run()
         update();
         draw();
     }
+    for(int i = 1; i <= 7; i++)
+        init_pair(i, i, 0);
+    print_over();
+}
+
+void print_instruction()
+{
+    timeout(-1);
+    clear_interface();
+    move(5, 2);
+    attron(COLOR_PAIR(2));
+    printw("W   -- spin");
+    attroff(COLOR_PAIR(2));
+    move(8, 2);
+    attron(COLOR_PAIR(3));
+    printw("ASD -- move");
+    attroff(COLOR_PAIR(3));
+    move(11, 2);
+    attron(COLOR_PAIR(4));
+    printw("PRESS ANY KEY");
+    move(12, 3);
+    printw("TO CONTINUE.");
+    attroff(COLOR_PAIR(4));
+    refresh();
+    getch();
+    print_menu();
+}
+
+void print_menu()
+{
+    timeout(-1);
+    clear_interface();
+    move(5, 2);
+    attron(COLOR_PAIR(2));
+    printw("S -- start");
+    attroff(COLOR_PAIR(2));
+    move(8, 2);
+    attron(COLOR_PAIR(3));
+    printw("I -- instruction");
+    attroff(COLOR_PAIR(3));
+    move(11, 2);
+    attron(COLOR_PAIR(4));
+    printw("OTHER -- quit");
+    attroff(COLOR_PAIR(4));
+    move(15, 3);
+    attron(COLOR_PAIR(5));
+    printw("YOUR HIGHEST");
+    move(16, 5);
+    printw("SCORE: %d", high);
+    attroff(COLOR_PAIR(5));
+    refresh();
+    char opration = getch();
+    //move(8, 2);
+    //printw("%c", opration);
+    if(opration == 's')
+        run();
+    else if(opration == 'i')
+        print_instruction();
+    else
+        return;
+    //while(1);
 }
 
 int main()
@@ -199,14 +313,14 @@ int main()
     srand(time(0));
     initscr();
     start_color();
+    //system("play BGM1.mp3");
     for(int i = 1; i <= 7; i++)
-        init_pair(i, i, i);
+        init_pair(i, i, 0);
     noecho();
     curs_set(0);
-    timeout(0);
     resizeterm(22, 22);
     box(stdscr, 0, 0);
-    new_block();
-    run();
+    getch();
+    print_menu();
     endwin();
 }
